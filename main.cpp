@@ -77,7 +77,7 @@ void analysis(const unsigned char *packet, int length){
 	print(ip->des.addr,ip->src.addr,IP_LEN);
 	print_tcp(tcp);
 
-	if(total_length != length){
+	if(tcp->PSH){
 		printf("Data : "); 
 		for(i = 0; i < length - total_length - 1; i++){
 			printf("%02x ", packet[i]);
