@@ -11,9 +11,6 @@ pcap을 이용하여 송수신 되는 packet의eth.smac, eth.dmac/ ip.sip, ip.di
 void analysis(const unsigned char *, int);
 void usage();
 void print_tcp(tcp_header *);
-int check_ip(ip_header *);
-int check_tcp(tcp_header *);
-int check_ether(ether_header *);
 int print(uint8_t *, uint8_t *, uint8_t);
 	
 int main(int argc, char* argv[]) {
