@@ -8,6 +8,14 @@ pcap을 이용하여 송수신 되는 packet의eth.smac, eth.dmac/ ip.sip, ip.di
 #include "frame.h"
 //#include <net/ethernet.h> //tcp 프로토콜 타입 정의
 
+void analysis(const unsigned char *, int);
+void usage();
+void print_tcp(tcp_header *);
+int check_ip(ip_header *);
+int check_tcp(tcp_header *);
+int check_ether(ether_header *);
+int print(uint8_t *, uint8_t *, uint8_t);
+	
 int main(int argc, char* argv[]) {
   if (argc != 2) {
     usage(); return -1;
@@ -28,9 +36,7 @@ int main(int argc, char* argv[]) {
     int res = pcap_next_ex(handle, &header, &packet);
     if (res == 0) continue;
 	else if (res == -1 || res == -2) break;
-	printf("------------------------------------------------\n");
 	analysis(packet,header->caplen);
-	printf("------------------------------------------------\n");
   }
 
   pcap_close(handle);
@@ -44,23 +50,36 @@ void usage() {
 
 void analysis(const unsigned char *packet, int length){
 
-	int offset = 0;
 	int total_length = 0;
 	int i = 0;
-	
-	offset = print_ether((ether_header *)packet);
-	if(offset == -1) return ;
-	packet = packet + offset;
-	total_length += offset;
+	int offset;
 
-	offset = print_ip((ip_header *)packet);
-	if(offset == -1) return ;
-	packet = packet + offset;
-	total_length += offset;
+	ether_header *ether;
+	ip_header *ip;
+	tcp_header *tcp;
 
-	offset = print_tcp((tcp_header *)packet);
+
+	ether = (ether_header *)packet;
+	if(ntohs(ether->type) != TYPE_IPV4) return;
+	offset = sizeof(ether_header);
+	total_length += offset;
 	packet += offset;
+
+	ip = (ip_header *)packet;
+	if(ip->protocol != TYPE_TCP) return;
+	offset = ip->header_length * 4;
 	total_length += offset;
+	packet +=offset;
+
+	tcp = (tcp_header *)packet;
+	offset = tcp->header_length * 4;
+	total_length += offset;
+	packet += total_length;
+
+	print(ether->des.addr,ether->src.addr,ETH_LEN);
+	print(ip->des.addr,ip->src.addr,IP_LEN);
+	print_tcp(tcp);
+
 	if(total_length != length){
 		printf("Data : "); 
 		for(i = 0; i < length-total_length; i++){
@@ -68,37 +87,22 @@ void analysis(const unsigned char *packet, int length){
 		}
 		printf("%02x\n", packet[i]);
 	}
+	printf("------------------------------------------------\n");
 }
 
-int print_ether(ether_header *ether){
-	if(ntohs(ether->type) != TYPE_IPV4) return -1;
-	printf("Destination MAC Address : ");
-	for (int i=0; i<ETH_LEN-1; i++)
-		printf("%02x : ",ether->des.addr[i]);
-	printf("%02x\n",ether->des.addr[ETH_LEN-1]);
-	printf("Source MAC Address : ");
-	for (int i=0; i<ETH_LEN-1; i++)
-		printf("%02x : ",ether->src.addr[i]);
-	printf("%02x\n",ether->src.addr[ETH_LEN-1]);
-	return sizeof(ether_header);
+int print(uint8_t *des, uint8_t *src, uint8_t len){
+	int i;
+	printf("Destination : ");
+	for (i = 0; i<len-1; i++)
+		printf("%02x : ", des[i]); 
+	printf("%02x\n",des[i]);
+	printf("Source : ");
+	for (i = 0; i<len-1; i++)
+		printf("%02x : ", src[i]); 
+	printf("%02x\n",src[i]);
 }
 
-int print_ip(ip_header *ip){
-	if(ip->protocol != TYPE_TCP) return -1;
-	printf("Destination IP Address :");
-	for (int i=0; i<IP_LEN-1 ;i++)
-		printf("%d : ",ip->des.addr[i]); 
-	printf("%d\n",ip->des.addr[IP_LEN-1]);
-	printf("Source IP Address :");
-	for (int i=0; i<IP_LEN-1 ;i++)
-		printf("%d : ",ip->src.addr[i]);
-	printf("%d\n",ip->src.addr[IP_LEN-1]);
-	return ip->header_length * 4;
-}
-
-
-int print_tcp(tcp_header *tcp){
-	printf("Destination TCP Port : %d\n",ntohs(tcp->desport));
-	printf("Source TCP Port : %d\n",ntohs(tcp->srcport));
-	return tcp->header_length * 4;
+void print_tcp(tcp_header *tcp){
+	printf("Destination : %d\n",ntohs(tcp->desport));
+	printf("Source : %d\n",ntohs(tcp->srcport));
 }
