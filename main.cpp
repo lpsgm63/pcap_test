@@ -74,7 +74,7 @@ void analysis(const unsigned char *packet, int length){
 	tcp = (tcp_header *)packet;
 	offset = tcp->header_length * 4;
 	total_length += offset;
-	packet += total_length;
+	packet += offset;
 
 	print(ether->des.addr,ether->src.addr,ETH_LEN);
 	print(ip->des.addr,ip->src.addr,IP_LEN);
@@ -82,7 +82,7 @@ void analysis(const unsigned char *packet, int length){
 
 	if(total_length != length){
 		printf("Data : "); 
-		for(i = 0; i < length-total_length; i++){
+		for(i = 0; i < length - total_length - 1; i++){
 			printf("%02x ", packet[i]);
 		}
 		printf("%02x\n", packet[i]);
