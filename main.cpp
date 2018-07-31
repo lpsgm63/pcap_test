@@ -79,9 +79,11 @@ void analysis(const unsigned char *packet, int length){
 
 	if(tcp->PSH){
 		printf("Data : "); 
-		for(i = 0; i < 16; i++){
+		size = length - total_length - 1;
+		if (size > 15) size = 15;
+		for(i = 0; i < size ; i++){
 			printf("%02x ", packet[i]);
-		}
+		printf("%02x\n", packet[i]);
 	}
 	printf("------------------------------------------------\n");
 }
